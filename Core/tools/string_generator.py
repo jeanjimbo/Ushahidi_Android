@@ -65,7 +65,7 @@ class StringGenerator:
         self.destination = destination
     def generate_string_xml(self,lang):
         """ generate strings.xml file from a csv file """
-        csv_data = csv.reader(open(self.source,"rb"))  
+        csv_data = csv.reader(open(self.source,"rb"))
         doc = xml.dom.minidom.Document()
         resources = doc.createElementNS(
             "urn:oasis:names:tc:xliff:document:1.2","resources")
@@ -79,9 +79,8 @@ class StringGenerator:
                 resources.appendChild(string)
 
         directory = self.create_dir(lang,self.destination)
-        stringxml = open(directory+"/strings.xml","w")
-        stringxml.writelines(doc.toprettyxml(indent="  "))
-        stringxml.close()
+        with open(f"{directory}/strings.xml", "w") as stringxml:
+            stringxml.writelines(doc.toprettyxml(indent="  "))
     
     def write_string_xml_file(self,lang, string_data):
         """ writes content of a list to an Android string.xml file """
@@ -96,28 +95,24 @@ class StringGenerator:
             string_text = doc.createTextNode(row[1])
             resources.appendChild(string)
         directory = self.create_dir(lang,self.destination)
-        stringxml = open(directory+ "/strings.xml","w")
-        stringxml.writelines(doc.toprettyxml(indent="  "))
-        stringxml.close()
+        with open(f"{directory}/strings.xml", "w") as stringxml:
+            stringxml.writelines(doc.toprettyxml(indent="  "))
 
     def create_dir(self, lang, destination):
         """ create android value-lang directory """
-        directory = "%s/values-%s" % (destination,lang)
-        
+        directory = f"{destination}/values-{lang}"
+
         if not os.path.isdir(directory):
             os.makedirs(directory)
         return directory
 
     def write_xml_to_file(self, doc, destdir="strings.xml"):
-        file_obj = open(destdir, "w");
-        xml.dom.ext.PrettyPrint(doc, file_obj)
-        file_obj.close()
+        with open(destdir, "w") as file_obj:
+            xml.dom.ext.PrettyPrint(doc, file_obj)
 
     def ReadLines(self, path):
-        f = open(path, 'r')
-        content = f.readlines()
-        f.close()
-        
+        with open(path, 'r') as f:
+            content = f.readlines()
         return content
     
     def write_xml_to_screen(self,doc):
@@ -132,16 +127,14 @@ class StringGenerator:
 
         if os.path.exists(destfile):
             os.remove(destfile)
-        f = open(destfile,'w')
-        for row in csv_data:
-            
-            if len(row) and len(row) == 3:
-                
-                f.write('#Key: %s\n'% row[0])
-                f.write('msgid "%s"\n' % row[1])
-                f.write('msgstr "%s"\n\n' % row[2])
-        
-        f.close();
+        with open(destfile,'w') as f:
+            for row in csv_data:
+
+                if len(row) and len(row) == 3:
+
+                    f.write('#Key: %s\n'% row[0])
+                    f.write('msgid "%s"\n' % row[1])
+                    f.write('msgstr "%s"\n\n' % row[2])
 
     def generate_pot_from_csv2(self):
         """ generate a pot file from csv """
@@ -177,37 +170,33 @@ class StringGenerator:
 
         if os.path.exists(destfile):
             os.remove(destfile)
-        f = open(destfile, 'w')
+        with open(destfile, 'w') as f:
+            for node in xml_doc.getElementsByTagName("string"):
+                name = node.getAttribute("name")
+                for string_element in node.childNodes:
+                    if string_element.nodeType == Node.TEXT_NODE:
+                        f.write('#Key: %s\n'% name)
+                        f.write('msgid "%s"\n'% textwrap.fill(string_element.data.replace('\t','').encode('UTF-8')))
+                        f.write('msgstr ""\n\n')
 
-        for node in xml_doc.getElementsByTagName("string"):
-            name = node.getAttribute("name")
-            for string_element in node.childNodes:
-                if string_element.nodeType == Node.TEXT_NODE:
-                    f.write('#Key: %s\n'% name)
-                    f.write('msgid "%s"\n'% textwrap.fill(string_element.data.replace('\t','').encode('UTF-8')))
-                    f.write('msgstr ""\n\n')
-        
-        """ Include plurals in the string """
-        p_elements = xml_doc.getElementsByTagName("plurals")
-        if len(p_elements) > 0:
-            f.write("##PLURALS##\n")
-            for p_element in p_elements:
-                item_elements = p_element.getElementsByTagName("item")
-                if len(item_elements) > 0:
-                    for item_element in item_elements:
-                        quantity = item_element.getAttribute("quantity")
-                        for item in item_element.childNodes:
-                            if item.nodeType == Node.TEXT_NODE:
-                                f.write('#Key: %s\n'%quantity)
-                                f.write('msgid "%s"\n'% textwrap.fill(item.data.replace('\t','\n').replace('\t',''.strip())))
-                                f.write('msgstr ""\n\n')
-
-
-        f.close()
+            """ Include plurals in the string """
+            p_elements = xml_doc.getElementsByTagName("plurals")
+            if len(p_elements) > 0:
+                f.write("##PLURALS##\n")
+                for p_element in p_elements:
+                    item_elements = p_element.getElementsByTagName("item")
+                    if len(item_elements) > 0:
+                        for item_element in item_elements:
+                            quantity = item_element.getAttribute("quantity")
+                            for item in item_element.childNodes:
+                                if item.nodeType == Node.TEXT_NODE:
+                                    f.write('#Key: %s\n'%quantity)
+                                    f.write('msgid "%s"\n'% textwrap.fill(item.data.replace('\t','\n').replace('\t',''.strip())))
+                                    f.write('msgstr ""\n\n')
 
     def generate_string_from_po_file(self,transFile,lang):
         """ generate string.xml for Android out of the translated po file """
-        csv_data = csv.reader(open(self.source,"rb"))  
+        csv_data = csv.reader(open(self.source,"rb"))
         doc = xml.dom.minidom.Document()
         resources = doc.createElementNS(
             "urn:oasis:names:tc:xliff:document:1.2","resources")
@@ -220,12 +209,12 @@ class StringGenerator:
         #print len(sl)
         count = 0
         for i in range(len(tl)):
+            variable = ""
             if len(tl) > count:
                 t = tl[i]
                 # l = sl[i]
                 msgid = ""
                 msgstr = ""
-                variable = ""
                 if t.startswith("#Key:"):
                     string = doc.createElement("string")
                     s = t.split("#Key:")
@@ -236,9 +225,8 @@ class StringGenerator:
                     string_text = doc.createTextNode(msgstr.strip("\n").rstrip('"'))
                     string.appendChild(string_text)
                     resources.appendChild(string)
-            else :
+            else:
                 l = sl[i]
-                variable = ""
                 if l.startswith("#Key:"):
                     s = l.split(" ")
                     variable = s[1]
@@ -246,13 +234,11 @@ class StringGenerator:
                     s = l.split(" ")
                     msgstr = s[1]
                 if not variable:
-                    list.append(variable)
-                    list.append(msgstr)
+                    list.extend((variable, msgstr))
             count +=1
         directory = self.create_dir(lang,self.destination)
-        stringxml = open(directory+"/strings.xml","w")
-        stringxml.writelines(doc.toprettyxml(indent="  "))
-        stringxml.close()
+        with open(f"{directory}/strings.xml", "w") as stringxml:
+            stringxml.writelines(doc.toprettyxml(indent="  "))
         return count
 
 
